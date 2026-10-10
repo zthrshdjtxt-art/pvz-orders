@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Заказы ПВЗ</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        h1 { color: #333; }
+        table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #4CAF50; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        tr:hover { background-color: #f1f1f1; }
+        .loading { font-style: italic; color: #666; }
+    </style>
+</head>
+<body>
+    <h1>📦 Заказы ПВЗ</h1>
+    <p id="status" class="loading">Загрузка данных...</p>
+    <table id="orders-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Товар</th>
+                <th>Цена</th>
+                <th>Статус</th>
+            </tr>
+        </thead>
+        <tbody id="table-body">
+            <!-- Сюда JavaScript добавит строки -->
+        </tbody>
+    </table>
+
+    <script>
+        // Ссылка на файл заказов (обязательно ветка master!)
+        const fileUrl = 'https://raw.githubusercontent.com/zthrshdjtxt-art/pvz-orders/master/zakaz.typoipvz';
+
+        async function loadOrders() {
+            try {
+                const response = await fetch(fileUrl);
+                if (!response.ok) throw new Error('Файл не найден');
+                const text = await response.text();
+                const lines = text.trim().split('\n');
+                const tbody = document.getElementById('table-body');
+
+                lines.forEach(line => {
+                    const parts = line.trim().split('|');
+                    if (parts.length >= 4) {
+                        const [id, product, price, status] = parts;
+                        const tr = `<tr>
+                            <td>${escapeHtml(id)}</td>
+                            <td>${escapeHtml(product)}</td>
+                            <td>${escapeHtml(price)}</td>
+                            <td>${escapeHtml(status)}</td>
+                        </tr>`;
+                        tbody.innerHTML += tr;
+                    }
+                });
+
+                document.getElementById('status').textContent = 'Данные загружены';
+                document.getElementById('status').className = '';
+            } catch (error) {
+                console.error(error);
+                document.getElementById('status').textContent = 'Ошибка загрузки данных: ' + error.message;
+                document.getElementById('status').style.color = 'red';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        loadOrders();
+    </script>
+</body>
+</html>
