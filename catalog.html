@@ -114,6 +114,7 @@
             transition: transform 0.2s;
             display: flex;
             flex-direction: column;
+            cursor: pointer; /* Добавлен курсор */
         }
         .product-card:hover {
             transform: translateY(-4px);
@@ -160,17 +161,60 @@
             background: #4a267a;
         }
 
-        /* Модальное окно (имитация корзины) */
+        /* Модальные окна */
         .modal {
-            display: none; position: fixed; z-index: 1000; left: 0; top: 0;
-            width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);
+            display: none; 
+            position: fixed; 
+            z-index: 2000; 
+            left: 0; 
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            background-color: rgba(0,0,0,0.5);
         }
         .modal-content {
-            background: white; margin: 15% auto; padding: 30px;
-            border-radius: 12px; width: 90%; max-width: 500px; text-align: center;
+            background: white; 
+            margin: 15% auto; 
+            padding: 30px;
+            border-radius: 12px; 
+            width: 90%; 
+            max-width: 500px; 
+            text-align: left; /* Изменено на left для карточки */
+            position: relative;
         }
-        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close { 
+            color: #aaa; 
+            float: right; 
+            font-size: 28px; 
+            font-weight: bold; 
+            cursor: pointer; 
+        }
         .close:hover { color: black; }
+        
+        /* Стили для модального окна товара */
+        #product-modal .modal-content {
+            text-align: left;
+            max-width: 600px;
+        }
+        #modal-img {
+            width: 100%;
+            height: 350px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .modal-row {
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .modal-label {
+            font-weight: bold;
+            color: #333;
+        }
+        .modal-value {
+            color: #555;
+            margin-left: 8px;
+        }
     </style>
 </head>
 <body>
@@ -202,7 +246,7 @@
     <div id="catalog-container" class="catalog-grid"></div>
 </main>
 
-<!-- Окно оформления заказа -->
+<!-- Окно оформления заказа (Корзина) -->
 <div id="cartModal" class="modal">
     <div class="modal-content">
         <span class="close" onclick="closeCart()">&times;</span>
@@ -216,12 +260,41 @@
     </div>
 </div>
 
+<!-- Модальное окно карточки товара -->
+<div id="product-modal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="close-product-modal">&times;</span>
+        <img id="modal-img" src="" alt="">
+        <h2 id="modal-title" style="margin-top:0;"></h2>
+        <p id="modal-desc" style="color:#555; margin-bottom:15px;"></p>
+        
+        <div class="modal-row">
+            <span class="modal-label">Цена:</span>
+            <span class="modal-value" id="modal-price"></span>
+        </div>
+        <div class="modal-row">
+            <span class="modal-label">Рейтинг:</span>
+            <span class="modal-value" id="modal-rating">4.8/5</span>
+        </div>
+        <div class="modal-row">
+            <span class="modal-label">Продавец:</span>
+            <span class="modal-value" id="modal-seller">Stupidly Shop</span>
+        </div>
+        <div class="modal-row">
+            <span class="modal-label">Цвета:</span>
+            <span class="modal-value" id="modal-colors">—</span>
+        </div>
+        
+        <button id="modal-add-cart" class="btn-buy" style="width:100%;">В корзину</button>
+    </div>
+</div>
+
 <script>
     // Ссылка на твой файл catalog.pov
     const fileUrl = 'https://raw.githubusercontent.com/zthrshdjtxt-art/pvz-orders/master/catalog.pov';
 
-    let products = [];
-    let cart = [];
+    let products = ;
+    let cart = ;
 
     async function loadProducts() {
         try {
@@ -234,7 +307,17 @@
                 const parts = line.trim().split('|');
                 if (parts.length >= 4) {
                     const [id, name, price, img] = parts;
-                    products.push({ id, name, price, img });
+                    // Добавляем заглушки для новых полей, если их нет в файле
+                    products.push({ 
+                        id, 
+                        name, 
+                        price, 
+                        img,
+                        desc: "Описание товара отсутствует в файле.",
+                        rating: "4.5",
+                        seller: "Stupidly Shop",
+                        colors: "—"
+                    });
                 }
             });
 
@@ -259,12 +342,15 @@
         items.forEach(product => {
             const card = document.createElement('div');
             card.className = 'product-card';
+            // При клике на карточку открываем модальное окно
+            card.onclick = () => openProductModal(product);
+            
             card.innerHTML = `
                 <img src="${escapeHtml(product.img)}" alt="${escapeHtml(product.name)}" class="product-img" onerror="this.src='https://via.placeholder.com/280'">
                 <div class="card-body">
-                    <div class="product-name">${escapeHtml(product.name)}</div>
-                    <div class="product-price">${escapeHtml(product.price)}</div>
-                    <button class="btn-buy" onclick="addToCart('${product.id}', '${escapeHtml(product.name)}', '${escapeHtml(product.price)}')">В корзину</button>
+                    <div class="product-name">\${escapeHtml(product.name)}</div>
+                    <div class="product-price">\${escapeHtml(product.price)}</div>
+                    <button class="btn-buy" onclick="event.stopPropagation(); addToCart('${product.id}', '${escapeHtml(product.name)}', '\${escapeHtml(product.price)}')">В корзину</button>
                 </div>
             `;
             container.appendChild(card);
@@ -278,7 +364,43 @@
         renderProducts(filtered);
     });
 
-    // Корзина
+    // --- Логика модального окна товара ---
+    function openProductModal(product) {
+        document.getElementById('modal-img').src = escapeHtml(product.img);
+        document.getElementById('modal-title').textContent = escapeHtml(product.name);
+        document.getElementById('modal-desc').textContent = escapeHtml(product.desc || 'Описание отсутствует');
+        document.getElementById('modal-price').textContent = escapeHtml(product.price) + ' ₽';
+        document.getElementById('modal-rating').textContent = product.rating || '4.8';
+        document.getElementById('modal-seller').textContent = product.seller || 'Stupidly Shop';
+        document.getElementById('modal-colors').textContent = product.colors || '—';
+        
+        // Сохраняем текущий товар в переменную, чтобы кнопка "В корзину" знала, что добавлять
+        window.currentProductToAdd = product;
+
+        document.getElementById('product-modal').style.display = 'block';
+    }
+
+    document.getElementById('close-product-modal').addEventListener('click', () => {
+        document.getElementById('product-modal').style.display = 'none';
+    });
+
+    window.addEventListener('click', (e) => {
+        const modal = document.getElementById('product-modal');
+        if (e.target === modal) modal.style.display = 'none';
+    });
+
+    document.getElementById('modal-add-cart').addEventListener('click', () => {
+        if (window.currentProductToAdd) {
+            addToCart(
+                window.currentProductToAdd.id, 
+                window.currentProductToAdd.name, 
+                window.currentProductToAdd.price
+            );
+            document.getElementById('product-modal').style.display = 'none';
+        }
+    });
+
+    // --- Логика корзины ---
     function addToCart(id, name, price) {
         cart.push({ id, name, price });
         alert('Товар добавлен в корзину!');
@@ -305,7 +427,6 @@
     function updateCartTotal() {
         let sum = 0;
         cart.forEach(item => {
-            // Убираем ₽ и пробелы, чтобы посчитать сумму
             const num = parseFloat(item.price.replace(/[^0-9.]/g, ''));
             if (!isNaN(num)) sum += num;
         });
@@ -314,12 +435,13 @@
 
     function confirmOrder() {
         alert('Заказ оформлен! Менеджер свяжется с тобой для оплаты на ЮMoney.');
-        cart = [];
+        cart = ;
         closeCart();
         location.reload();
     }
 
     function escapeHtml(text) {
+        if (!text) return '';
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
